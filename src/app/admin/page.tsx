@@ -39,6 +39,7 @@ import {
   Phone,
   Mail,
   UserCheck,
+  Layers,
 } from "lucide-react";
 import { mockEvents } from "@/data/mockEvents";
 import { mockUsers } from "@/data/mockUsers";
