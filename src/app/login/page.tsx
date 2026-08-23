@@ -19,13 +19,22 @@ export default function LoginPage() {
     setIsLoading(true);
     setMessage("");
 
+    const isAdmin = email.toLowerCase().includes("admin") || password.toLowerCase() === "admin";
+
     setTimeout(() => {
       setIsLoading(false);
-      setMessage("Đăng nhập thành công! Đang chuyển hướng...");
-      setTimeout(() => {
-        router.push("/my-tickets");
-      }, 800);
-    }, 600);
+      if (isAdmin) {
+        setMessage("Đăng nhập quyền Quản trị viên Admin thành công!");
+        setTimeout(() => {
+          router.push("/admin");
+        }, 500);
+      } else {
+        setMessage("Đăng nhập thành công! Đang chuyển hướng...");
+        setTimeout(() => {
+          router.push("/my-tickets");
+        }, 600);
+      }
+    }, 500);
   };
 
   return (
@@ -148,8 +157,15 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="text-center pt-2 border-t border-border-subtle">
-          <p className="text-xs text-luxury-sage">
+        <div className="text-center pt-3 border-t border-border-subtle space-y-2">
+          <Link
+            href="/admin"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-luxury-ivory border border-border-subtle hover:border-emerald hover:text-emerald text-xs font-semibold text-luxury-ink transition-colors"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald" />
+            <span>Truy cập Bảng điều khiển Quản trị (Admin) →</span>
+          </Link>
+          <p className="text-[11px] text-luxury-sage pt-1">
             Bằng việc tiếp tục, bạn đồng ý với{" "}
             <Link href="/about#terms" className="text-emerald underline">
               Điều khoản dịch vụ
