@@ -40,12 +40,13 @@ import {
   Mail,
   UserCheck,
   Layers,
+  Download,
 } from "lucide-react";
 import { mockEvents } from "@/data/mockEvents";
 import { mockUsers } from "@/data/mockUsers";
 import { mockArtists } from "@/data/mockArtists";
 import { mockArticles } from "@/data/mockArticles";
-import { QRCodeSVG } from "qrcode.react";
+import * as htmlToImage from "html-to-image";
 import {
   UserProfile,
   Article,
@@ -2675,8 +2676,8 @@ SUPABASE_SERVICE_ROLE_KEY=your_secret_service_role_key`}
                             onClick={() => setSelectedOrderForQr(ord)}
                             className="px-4 py-2 rounded-full bg-luxury-ink text-white hover:bg-emerald transition-all text-xs font-semibold inline-flex items-center justify-center gap-1.5 shadow-sm active:scale-95 shrink-0"
                           >
-                            <QrCode className="w-3.5 h-3.5 text-champagne" />
-                            <span>Xem mã QR vé điện tử</span>
+                            <Ticket className="w-3.5 h-3.5 text-champagne" />
+                            <span>Xem thẻ vé vào cổng</span>
                           </button>
                         </div>
                       </div>
@@ -2729,7 +2730,7 @@ SUPABASE_SERVICE_ROLE_KEY=your_secret_service_role_key`}
       )}
 
       {/* ======================================================== */}
-      {/* MODAL: DIGITAL QR BOARDING PASS PREVIEW */}
+      {/* MODAL: DIGITAL BOARDING PASS PREVIEW (NO QR CODE) */}
       {/* ======================================================== */}
       {selectedOrderForQr && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-fade-in">
@@ -2737,7 +2738,7 @@ SUPABASE_SERVICE_ROLE_KEY=your_secret_service_role_key`}
             <div className="p-6 bg-emerald text-white flex items-center justify-between">
               <div>
                 <span className="text-[10px] uppercase tracking-widest text-champagne font-bold block">
-                  TICKETSHOW LUXURY PASS
+                  TICKETSHOW OFFICIAL PASS
                 </span>
                 <h4 className="font-serif text-lg font-bold">{selectedOrderForQr.eventTitle}</h4>
               </div>
@@ -2750,106 +2751,116 @@ SUPABASE_SERVICE_ROLE_KEY=your_secret_service_role_key`}
               </button>
             </div>
 
-            <div className="p-6 space-y-5 text-center">
-              {/* Real Scannable QR Box */}
-              <div className="p-4 rounded-3xl bg-luxury-ivory border border-border-subtle inline-block mx-auto shadow-sm">
-                <div className="bg-white border border-border-subtle rounded-2xl p-4 flex flex-col items-center justify-center space-y-2 shadow-inner">
-                  <QRCodeSVG
-                    value={
-                      typeof window !== "undefined"
-                        ? `${window.location.origin}/verify/${selectedOrderForQr.orderNumber}`
-                        : `https://ticketshow.vn/verify/${selectedOrderForQr.orderNumber}`
-                    }
-                    size={170}
-                    level="H"
-                    bgColor="#ffffff"
-                    fgColor="#062319"
-                    includeMargin={false}
-                  />
-                  <span className="font-mono text-xs font-bold text-emerald tracking-wider pt-1">
+            <div className="p-6 space-y-4 text-center">
+              {/* Pass Card Container to export as image */}
+              <div
+                id="admin-ticket-pass-box"
+                className="p-4 rounded-2xl bg-white border border-border-subtle shadow-sm space-y-3 text-left"
+              >
+                <div className="p-3.5 rounded-xl bg-gradient-to-r from-emerald to-emerald-900 text-white flex items-center justify-between">
+                  <span className="text-[10px] uppercase tracking-wider font-bold text-champagne">
+                    VÉ HỢP LỆ • VÀO CỔNG
+                  </span>
+                  <span className="font-mono text-xs font-bold bg-white/20 px-2 py-0.5 rounded-full">
                     #{selectedOrderForQr.orderNumber}
                   </span>
                 </div>
-              </div>
 
-              <div className="space-y-1">
-                <p className="text-xs font-bold text-emerald flex items-center justify-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Quét bằng Camera điện thoại hoặc Zalo</span>
-                </p>
-                <p className="text-[11px] text-luxury-sage">
-                  Điện thoại sẽ tự động mở trang xác thực thông tin show, giá tiền, thời gian và địa điểm.
-                </p>
-              </div>
+                {/* Complete Event & Price Details Box */}
+                <div className="space-y-2 text-xs bg-luxury-ivory/70 p-3.5 rounded-xl border border-border-subtle">
+                  <div className="flex justify-between items-start pb-1.5 border-b border-border-subtle">
+                    <span className="text-luxury-sage">Show diễn:</span>
+                    <span className="font-bold text-luxury-ink text-right max-w-[190px]">
+                      {selectedOrderForQr.eventTitle}
+                    </span>
+                  </div>
 
-              {/* Complete Event & Price Details Box */}
-              <div className="space-y-2.5 text-left bg-luxury-ivory/60 p-4 rounded-2xl border border-border-subtle text-xs">
-                <div className="flex justify-between items-start pb-2 border-b border-border-subtle">
-                  <span className="text-luxury-sage">Show diễn:</span>
-                  <span className="font-bold text-luxury-ink text-right max-w-[200px]">
-                    {selectedOrderForQr.eventTitle}
-                  </span>
+                  <div className="flex justify-between items-center pb-1.5 border-b border-border-subtle">
+                    <span className="text-luxury-sage">Giá tiền đã mua:</span>
+                    <span className="font-serif text-sm font-bold text-emerald">
+                      {formatVND(selectedOrderForQr.totalPrice)}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-start pb-1.5 border-b border-border-subtle">
+                    <span className="text-luxury-sage">Thời gian diễn:</span>
+                    <span className="font-semibold text-luxury-ink text-right">
+                      {formatEventDate(selectedOrderForQr.eventDate)} ({selectedOrderForQr.eventTime})
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-start pb-1.5 border-b border-border-subtle">
+                    <span className="text-luxury-sage">Địa điểm:</span>
+                    <span className="font-semibold text-luxury-ink text-right max-w-[190px]">
+                      {selectedOrderForQr.venueName} ({selectedOrderForQr.venueCity})
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center pb-1.5 border-b border-border-subtle">
+                    <span className="text-luxury-sage">Hạng vé & Số lượng:</span>
+                    <span className="font-semibold text-emerald">
+                      {selectedOrderForQr.ticketTierName} ({selectedOrderForQr.quantity} vé)
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center pb-1.5 border-b border-border-subtle">
+                    <span className="text-luxury-sage">Vị trí ghế:</span>
+                    <span className="font-bold text-luxury-ink">
+                      {selectedOrderForQr.seatNumbers?.join(", ") || "Tự do"}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <span className="text-luxury-sage">Người sở hữu:</span>
+                    <span className="font-semibold text-luxury-ink">{selectedOrderForQr.customerName}</span>
+                  </div>
                 </div>
 
-                <div className="flex justify-between items-center pb-2 border-b border-border-subtle">
-                  <span className="text-luxury-sage">Giá tiền đã mua:</span>
-                  <span className="font-serif text-sm font-bold text-emerald">
-                    {formatVND(selectedOrderForQr.totalPrice)}
+                <div className="p-2.5 rounded-lg bg-luxury-dark text-white text-center">
+                  <span className="text-[10px] font-mono font-bold tracking-widest text-champagne block">
+                    PASS-ID: #{selectedOrderForQr.orderNumber}
                   </span>
-                </div>
-
-                <div className="flex justify-between items-start pb-2 border-b border-border-subtle">
-                  <span className="text-luxury-sage">Thời gian diễn:</span>
-                  <span className="font-semibold text-luxury-ink text-right">
-                    {formatEventDate(selectedOrderForQr.eventDate)} ({selectedOrderForQr.eventTime})
+                  <span className="text-[10px] text-white/70">
+                    Xuất trình hình ảnh này khi làm thủ tục check-in tại cổng
                   </span>
-                </div>
-
-                <div className="flex justify-between items-start pb-2 border-b border-border-subtle">
-                  <span className="text-luxury-sage">Địa điểm:</span>
-                  <span className="font-semibold text-luxury-ink text-right max-w-[200px]">
-                    {selectedOrderForQr.venueName} ({selectedOrderForQr.venueCity})
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center pb-2 border-b border-border-subtle">
-                  <span className="text-luxury-sage">Hạng vé & Số lượng:</span>
-                  <span className="font-semibold text-emerald">
-                    {selectedOrderForQr.ticketTierName} ({selectedOrderForQr.quantity} vé)
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center pb-2 border-b border-border-subtle">
-                  <span className="text-luxury-sage">Vị trí ghế ngồi:</span>
-                  <span className="font-bold text-luxury-ink">
-                    {selectedOrderForQr.seatNumbers?.join(", ") || "Tự do"}
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="text-luxury-sage">Người sở hữu:</span>
-                  <span className="font-semibold text-luxury-ink">{selectedOrderForQr.customerName}</span>
                 </div>
               </div>
 
               {/* Action Buttons */}
               <div className="space-y-2 pt-1">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const node = document.getElementById("admin-ticket-pass-box");
+                    if (!node) return;
+                    try {
+                      const dataUrl = await htmlToImage.toPng(node, {
+                        quality: 0.98,
+                        pixelRatio: 2,
+                        backgroundColor: "#ffffff",
+                      });
+                      const link = document.createElement("a");
+                      link.download = `Ve-Vao-Cong-TICKETSHOW-${selectedOrderForQr.orderNumber}.png`;
+                      link.href = dataUrl;
+                      link.click();
+                    } catch (err) {
+                      console.error("Lỗi khi tải ảnh vé:", err);
+                    }
+                  }}
+                  className="w-full py-3.5 rounded-full bg-emerald text-white text-xs font-bold hover:bg-emerald-hover transition-colors shadow-md inline-flex items-center justify-center gap-1.5 active:scale-95"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>LƯU HÌNH ẢNH VÉ VỀ MÁY (LÀM VÉ VÀO CỔNG)</span>
+                </button>
+
                 <Link
                   href={`/verify/${selectedOrderForQr.orderNumber}`}
                   target="_blank"
-                  className="w-full py-3 rounded-full bg-emerald text-white text-xs font-semibold hover:bg-emerald-hover transition-colors shadow-sm inline-flex items-center justify-center gap-1.5"
+                  className="w-full py-2.5 rounded-full bg-luxury-ivory border border-border-subtle text-xs font-semibold text-luxury-ink hover:border-emerald hover:text-emerald transition-colors inline-flex items-center justify-center gap-1"
                 >
-                  <span>Mở trang xác thực vé trên trình duyệt</span>
+                  <span>Xem thẻ vé trên trang riêng</span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </Link>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedOrderForQr(null)}
-                  className="w-full py-2.5 rounded-full text-xs font-semibold text-luxury-sage hover:text-luxury-ink transition-colors"
-                >
-                  Đóng
-                </button>
               </div>
             </div>
           </div>

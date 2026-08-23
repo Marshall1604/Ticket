@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
@@ -19,12 +19,13 @@ import {
   ChevronRight,
   Sparkles,
   AlertCircle,
+  Image as ImageIcon,
 } from "lucide-react";
 import { OrderItem } from "@/types";
 import { formatVND, formatEventDate } from "@/lib/utils";
 import { fetchOrderByNumber } from "@/lib/supabase";
 import { mockEvents } from "@/data/mockEvents";
-import { QRCodeSVG } from "qrcode.react";
+import * as htmlToImage from "html-to-image";
 
 export default function TicketVerificationPage() {
   const params = useParams();
@@ -33,9 +34,9 @@ export default function TicketVerificationPage() {
 
   const [order, setOrder] = useState<OrderItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isCheckedIn, setIsCheckedIn] = useState(false);
-  const [checkInTime, setCheckInTime] = useState<string | null>(null);
+  const [isSavingImage, setIsSavingImage] = useState(false);
   const [copied, setCopied] = useState(false);
+  const ticketRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function loadOrder() {
@@ -47,7 +48,6 @@ export default function TicketVerificationPage() {
 
       // 2. If not found by exact number, check query params or create realistic record
       if (!found) {
-        // Check if query params provided
         const qTitle = searchParams.get("title");
         const qPrice = searchParams.get("price");
         const qDate = searchParams.get("date");
@@ -76,12 +76,11 @@ export default function TicketVerificationPage() {
             customerPhone: "0912 345 678",
             paymentMethod: "bank_transfer",
             paymentStatus: "paid",
-            qrCodeData: window.location.href,
+            qrCodeData: "",
             createdAt: new Date().toISOString(),
             seatNumbers: ["Zone VIP-10"],
           };
         } else {
-          // Fallback to primary show for any test order number
           const baseEvent = mockEvents[0];
           found = {
             id: "ord-" + cleanNum,
@@ -103,7 +102,7 @@ export default function TicketVerificationPage() {
             customerPhone: "0912 345 678",
             paymentMethod: "bank_transfer",
             paymentStatus: "paid",
-            qrCodeData: window.location.href,
+            qrCodeData: "",
             createdAt: new Date().toISOString(),
             seatNumbers: ["Zone VIP-10"],
           };
@@ -111,41 +110,33 @@ export default function TicketVerificationPage() {
       }
 
       setOrder(found);
-
-      // Check if already checked in locally
-      const checkInKey = "ticketshow_checkin_" + cleanNum;
-      const savedCheckIn = localStorage.getItem(checkInKey);
-      if (savedCheckIn) {
-        setIsCheckedIn(true);
-        setCheckInTime(savedCheckIn);
-      }
-
       setIsLoading(false);
     }
 
     loadOrder();
   }, [rawOrderNumber, searchParams]);
 
-  const handleToggleCheckIn = () => {
-    const cleanNum = decodeURIComponent(rawOrderNumber);
-    const checkInKey = "ticketshow_checkin_" + cleanNum;
+  const handleSaveTicketAsImage = async () => {
+    if (!ticketRef.current || !order) return;
+    setIsSavingImage(true);
 
-    if (!isCheckedIn) {
-      const nowTime = new Date().toLocaleString("vi-VN", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
+    try {
+      const dataUrl = await htmlToImage.toPng(ticketRef.current, {
+        quality: 0.98,
+        pixelRatio: 2,
+        backgroundColor: "#FAF9F5",
       });
-      setIsCheckedIn(true);
-      setCheckInTime(nowTime);
-      localStorage.setItem(checkInKey, nowTime);
-    } else {
-      setIsCheckedIn(false);
-      setCheckInTime(null);
-      localStorage.removeItem(checkInKey);
+
+      const link = document.createElement("a");
+      link.download = `Ve-Vao-Cong-TICKETSHOW-${order.orderNumber}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error("Lỗi khi tạo ảnh vé:", err);
+      // Fallback to print
+      window.print();
+    } finally {
+      setIsSavingImage(false);
     }
   };
 
@@ -157,20 +148,14 @@ export default function TicketVerificationPage() {
     }
   };
 
-  const handlePrint = () => {
-    if (typeof window !== "undefined") {
-      window.print();
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-luxury-ivory/50 flex flex-col items-center justify-center p-6 text-center">
         <div className="w-14 h-14 border-4 border-emerald/20 border-t-emerald rounded-full animate-spin mb-4" />
         <h3 className="font-serif text-xl font-semibold text-luxury-ink">
-          Đang quét & xác thực thông tin vé...
+          Đang tải thông tin vé vào cổng...
         </h3>
-        <p className="text-xs text-luxury-sage mt-1">Hệ thống bảo mật TICKETSHOW</p>
+        <p className="text-xs text-luxury-sage mt-1">Hệ thống vé điện tử TICKETSHOW</p>
       </div>
     );
   }
@@ -200,30 +185,41 @@ export default function TicketVerificationPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-luxury-ivory via-white to-luxury-ivory/40 pt-20 sm:pt-28 pb-20 px-4 sm:px-6">
       <div className="max-w-2xl mx-auto space-y-6">
-        {/* Top Breadcrumb */}
+        {/* Top Actions Ribbon */}
         <div className="flex items-center justify-between text-xs text-luxury-sage">
           <Link href="/" className="hover:text-emerald flex items-center gap-1 font-medium">
             <span>TICKETSHOW</span>
             <ChevronRight className="w-3.5 h-3.5" />
-            <span>Xác thực vé điện tử</span>
+            <span>Thẻ vé vào cổng</span>
           </Link>
           <span className="font-mono text-[11px] font-bold text-emerald">
             #{order.orderNumber}
           </span>
         </div>
 
-        {/* ======================================================== */}
-        {/* MAIN LUXURY VERIFIED TICKET CARD */}
-        {/* ======================================================== */}
-        <div className="bg-white rounded-3xl sm:rounded-[36px] border border-border-subtle shadow-[0_12px_48px_rgba(16,35,30,0.08)] overflow-hidden">
-          {/* Header Strip with Live Verification Status */}
-          <div
-            className={
-              isCheckedIn
-                ? "p-6 sm:p-8 text-white transition-all bg-gradient-to-r from-emerald-800 to-luxury-dark"
-                : "p-6 sm:p-8 text-white transition-all bg-gradient-to-r from-emerald to-emerald-900"
-            }
+        {/* Quick Action Top Button */}
+        <div className="flex items-center justify-end">
+          <button
+            type="button"
+            onClick={handleSaveTicketAsImage}
+            disabled={isSavingImage}
+            className="px-6 py-3 rounded-full bg-emerald text-white text-xs sm:text-sm font-semibold hover:bg-emerald-hover transition-all shadow-md inline-flex items-center gap-2 active:scale-95 disabled:opacity-50"
           >
+            <Download className="w-4 h-4" />
+            <span>{isSavingImage ? "Đang tạo ảnh vé..." : "Lưu ảnh vé vào máy (Làm vé vào cổng)"}</span>
+          </button>
+        </div>
+
+        {/* ======================================================== */}
+        {/* MAIN LUXURY TICKET PASS CARD (Will be exported to PNG) */}
+        {/* ======================================================== */}
+        <div
+          ref={ticketRef}
+          id="ticket-pass-container"
+          className="bg-white rounded-3xl sm:rounded-[36px] border border-border-subtle shadow-[0_12px_48px_rgba(16,35,30,0.08)] overflow-hidden"
+        >
+          {/* Header Strip */}
+          <div className="p-6 sm:p-8 text-white bg-gradient-to-r from-emerald to-emerald-900">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-inner shrink-0">
@@ -231,36 +227,21 @@ export default function TicketVerificationPage() {
                 </div>
                 <div>
                   <span className="text-[10px] uppercase tracking-widest font-bold text-champagne block">
-                    TICKETSHOW OFFICIAL VERIFIED PASS
+                    TICKETSHOW OFFICIAL BOARDING PASS
                   </span>
                   <h2 className="font-serif text-lg sm:text-xl font-bold tracking-tight text-white">
-                    {isCheckedIn ? "VÉ ĐÃ CHECK-IN QUA CỔNG" : "VÉ HỢP LỆ • SẴN SÀNG VÀO CỔNG"}
+                    VÉ HỢP LỆ • XUẤT TRÌNH KHI VÀO CỔNG
                   </h2>
                 </div>
               </div>
 
               <div className="shrink-0 text-right">
-                <span
-                  className={
-                    isCheckedIn
-                      ? "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-400 text-luxury-ink shadow-sm"
-                      : "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-400 text-luxury-dark shadow-sm"
-                  }
-                >
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-400 text-luxury-dark shadow-sm">
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>{isCheckedIn ? "Checked-in" : "Valid Pass"}</span>
+                  <span>Valid Ticket</span>
                 </span>
               </div>
             </div>
-
-            {isCheckedIn && checkInTime && (
-              <div className="mt-4 pt-3 border-t border-white/15 text-xs text-champagne flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                <span>
-                  Thời gian quét vé qua cổng: <strong>{checkInTime}</strong>
-                </span>
-              </div>
-            )}
           </div>
 
           {/* Event Cover Image & Title Box */}
@@ -284,7 +265,7 @@ export default function TicketVerificationPage() {
                   {order.eventTitle}
                 </h1>
                 <p className="text-xs text-luxury-sage font-medium">
-                  Mã vé điện tử: <strong className="font-mono text-luxury-ink">#{order.orderNumber}</strong>
+                  Mã định danh vé: <strong className="font-mono text-luxury-ink">#{order.orderNumber}</strong>
                 </p>
               </div>
             </div>
@@ -307,13 +288,13 @@ export default function TicketVerificationPage() {
                     </span>
                   </div>
                   <div className="flex items-baseline justify-between pt-1 border-t border-emerald/10">
-                    <span className="text-xs font-bold text-luxury-ink">Tổng tiền đã thanh toán:</span>
+                    <span className="text-xs font-bold text-luxury-ink">Tổng tiền thanh toán:</span>
                     <span className="font-serif text-xl sm:text-2xl font-bold text-emerald">
                       {formatVND(order.totalPrice)}
                     </span>
                   </div>
                   <div className="text-[11px] text-emerald font-medium pt-1">
-                    ✓ Đã thanh toán thành công ({order.paymentMethod.replace("_", " ")})
+                    ✓ Đã thanh toán ({order.paymentMethod.replace("_", " ")})
                   </div>
                 </div>
               </div>
@@ -351,17 +332,9 @@ export default function TicketVerificationPage() {
                   <div className="text-xs text-luxury-sage">
                     {order.venueCity}, Việt Nam
                   </div>
-                  <a
-                    href={"https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(
-                      order.venueName + " " + order.venueCity
-                    )}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald hover:underline pt-1"
-                  >
-                    <span>Xem vị trí trên Google Maps</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
+                  <div className="text-[11px] text-emerald font-medium pt-0.5">
+                    Khán phòng chính • Cổng soát vé A & B
+                  </div>
                 </div>
               </div>
 
@@ -430,71 +403,52 @@ export default function TicketVerificationPage() {
               </div>
             </div>
 
-            {/* Scannable Real QR Pass Centerpiece */}
-            <div className="p-6 rounded-3xl bg-luxury-ivory/80 border border-border-subtle text-center space-y-3">
-              <span className="text-[11px] font-bold uppercase tracking-widest text-emerald block">
-                MÃ QR CHÍNH THỨC DÙNG ĐỂ CHECK-IN
-              </span>
-
-              <div className="p-4 bg-white rounded-2xl border border-border-subtle inline-block shadow-md">
-                <QRCodeSVG
-                  value={typeof window !== "undefined" ? window.location.href : ("https://ticketshow.vn/verify/" + order.orderNumber)}
-                  size={160}
-                  level="H"
-                  bgColor="#ffffff"
-                  fgColor="#062319"
-                  includeMargin={false}
-                />
+            {/* Security Pass Serial Badge (Replaces QR Code) */}
+            <div className="p-5 rounded-2xl bg-luxury-dark text-white flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="space-y-1 text-center sm:text-left">
+                <span className="text-[10px] uppercase tracking-widest font-bold text-champagne block">
+                  OFFICIAL EVENT ENTRY PASS
+                </span>
+                <div className="font-mono text-base sm:text-lg font-bold tracking-widest text-white">
+                  PASS-ID: #{order.orderNumber}
+                </div>
+                <p className="text-xs text-white/70">
+                  Lưu hình ảnh này vào thư viện ảnh trên điện thoại để xuất trình trực tiếp cho nhân viên soát vé tại cửa.
+                </p>
               </div>
 
-              <div className="font-mono text-sm font-bold text-luxury-ink">
-                #{order.orderNumber}
+              <div className="shrink-0 flex items-center gap-2">
+                <span className="px-4 py-2 rounded-xl bg-white/10 border border-white/20 text-xs font-bold text-champagne uppercase tracking-wider">
+                  Cổng VIP / GA
+                </span>
               </div>
-              <p className="text-xs text-luxury-sage max-w-sm mx-auto">
-                Xuất trình mã này cho nhân viên soát vé tại cửa để được quét xác thực và vào khán phòng.
-              </p>
             </div>
 
-            {/* Check-In Action Button for Staff / Organizer */}
+            {/* Bottom Download & Save Action */}
             <div className="pt-2">
               <button
                 type="button"
-                onClick={handleToggleCheckIn}
-                className={
-                  isCheckedIn
-                    ? "w-full py-4 rounded-2xl text-sm font-bold transition-all shadow-md flex items-center justify-center gap-2 active:scale-[0.99] bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200"
-                    : "w-full py-4 rounded-2xl text-sm font-bold transition-all shadow-md flex items-center justify-center gap-2 active:scale-[0.99] bg-emerald text-white hover:bg-emerald-hover"
-                }
+                onClick={handleSaveTicketAsImage}
+                disabled={isSavingImage}
+                className="w-full py-4 rounded-2xl text-sm font-bold bg-emerald text-white hover:bg-emerald-hover transition-all shadow-md flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-50"
               >
-                <ShieldCheck className="w-5 h-5" />
+                <Download className="w-5 h-5" />
                 <span>
-                  {isCheckedIn
-                    ? "HỦY TRẠNG THÁI CHECK-IN (DÀNH CHO SOÁT VÉ)"
-                    : "XÁC NHẬN CHECK-IN VÀO CỔNG NGAY"}
+                  {isSavingImage ? "Đang xuất ảnh vé chất lượng cao..." : "LƯU HÌNH ẢNH VÉ VỀ MÁY (DÙNG ĐỂ VÀO CỔNG)"}
                 </span>
               </button>
             </div>
 
-            {/* Bottom Actions: Share, Print, Back to Home */}
+            {/* Sub Actions */}
             <div className="pt-4 border-t border-border-subtle flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleShare}
-                  className="px-4 py-2 rounded-full bg-white border border-border-subtle hover:border-emerald hover:text-emerald text-xs font-semibold text-luxury-ink transition-colors inline-flex items-center gap-1.5"
-                >
-                  <Share2 className="w-3.5 h-3.5" />
-                  <span>{copied ? "Đã sao chép link!" : "Chia sẻ vé"}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handlePrint}
-                  className="px-4 py-2 rounded-full bg-white border border-border-subtle hover:border-emerald hover:text-emerald text-xs font-semibold text-luxury-ink transition-colors inline-flex items-center gap-1.5"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>In / Lưu thẻ vé</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={handleShare}
+                className="px-4 py-2 rounded-full bg-white border border-border-subtle hover:border-emerald hover:text-emerald text-xs font-semibold text-luxury-ink transition-colors inline-flex items-center gap-1.5"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                <span>{copied ? "Đã sao chép link vé!" : "Chia sẻ thông tin vé"}</span>
+              </button>
 
               <Link
                 href="/"
