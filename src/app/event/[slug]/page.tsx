@@ -1,7 +1,9 @@
-import React from "react";
-import { notFound } from "next/navigation";
+﻿"use client";
+
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import {
   Calendar,
   Clock,
@@ -10,81 +12,145 @@ import {
   Sparkles,
   ChevronRight,
   Info,
-  Share2,
-  Heart,
-  Users,
   Building2,
+  AlertCircle,
+  Search,
 } from "lucide-react";
 import { mockEvents } from "@/data/mockEvents";
+import { EventItem } from "@/types";
 import { formatVND, formatEventDate } from "@/lib/utils";
 import { TicketTierSelector } from "@/components/events/TicketTierSelector";
 import { EventCard } from "@/components/events/EventCard";
 import { Badge } from "@/components/ui/Badge";
+import { fetchEventBySlug, fetchEventsList } from "@/lib/supabase";
 
-interface EventPageProps {
-  params: {
-    slug: string;
-  };
-}
+export default function EventDetailPage() {
+  const params = useParams();
+  const rawSlug = typeof params?.slug === "string" ? params.slug : "";
 
-export function generateStaticParams() {
-  return mockEvents.map((e) => ({
-    slug: e.slug,
-  }));
-}
+  const [event, setEvent] = useState<EventItem | null>(() => {
+    return mockEvents.find((e) => e.slug === rawSlug || e.id === rawSlug) || null;
+  });
+  const [relatedEvents, setRelatedEvents] = useState<EventItem[]>([]);
+  const [isLoading, setIsLoading] = useState(!event);
 
-export function generateMetadata({ params }: EventPageProps) {
-  const event = mockEvents.find((e) => e.slug === params.slug);
-  if (!event) return { title: "Không tìm thấy sự kiện" };
+  useEffect(() => {
+    let isMounted = true;
 
-  return {
-    title: `${event.title} — ${event.artist.name}`,
-    description: event.description[0],
-    openGraph: {
-      title: `${event.title} — ${event.artist.name} | TICKETSHOW`,
-      description: event.description[0],
-      images: [{ url: event.heroImage, width: 1200, height: 630 }],
-    },
-  };
-}
+    async function loadData() {
+      if (!rawSlug) return;
+      const foundEvent = await fetchEventBySlug(rawSlug);
+      const allEvents = await fetchEventsList();
 
-export default function EventDetailPage({ params }: EventPageProps) {
-  const event = mockEvents.find((e) => e.slug === params.slug);
+      if (isMounted) {
+        if (foundEvent) {
+          setEvent(foundEvent);
+          const related = allEvents
+            .filter(
+              (e) =>
+                e.id !== foundEvent.id &&
+                (e.category === foundEvent.category || e.venue?.city === foundEvent.venue?.city)
+            )
+            .slice(0, 3);
+          setRelatedEvents(related.length > 0 ? related : allEvents.slice(0, 3));
+        } else {
+          setRelatedEvents(allEvents.slice(0, 3));
+        }
+        setIsLoading(false);
+      }
+    }
 
-  if (!event) {
-    notFound();
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [rawSlug]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen pt-32 pb-24 flex flex-col items-center justify-center text-center px-4 bg-luxury-ivory/30">
+        <div className="w-14 h-14 border-4 border-emerald/20 border-t-emerald rounded-full animate-spin mb-4" />
+        <h3 className="font-serif text-xl font-semibold text-luxury-ink">
+          Đang tải thông tin sự kiện & hạng vé...
+        </h3>
+        <p className="text-xs text-luxury-sage mt-1">TICKETSHOW Luxury Ticketing</p>
+      </div>
+    );
   }
 
-  const relatedEvents = mockEvents
-    .filter((e) => e.id !== event.id && (e.category === event.category || e.venue.city === event.venue.city))
-    .slice(0, 3);
+  if (!event) {
+    return (
+      <div className="min-h-screen pt-32 pb-24 max-w-site mx-auto px-5 sm:px-8 space-y-12">
+        <div className="text-center space-y-4 max-w-md mx-auto p-8 rounded-3xl bg-white border border-border-subtle shadow-sm">
+          <div className="w-16 h-16 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-2">
+            <AlertCircle className="w-8 h-8" />
+          </div>
+          <h2 className="font-serif text-2xl font-semibold text-luxury-ink">
+            Sự kiện không tồn tại hoặc đã tạm dừng
+          </h2>
+          <p className="text-xs sm:text-sm text-luxury-sage leading-relaxed">
+            Chúng tôi không tìm thấy thông tin cho mã sự kiện <code>{rawSlug}</code>. Vui lòng khám phá các show diễn nổi bật khác dưới đây.
+          </p>
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              href="/shows"
+              className="w-full sm:w-auto px-6 py-2.5 rounded-full bg-emerald text-white text-xs font-semibold hover:bg-emerald-hover transition-colors"
+            >
+              Xem tất cả Show diễn
+            </Link>
+            <Link
+              href="/"
+              className="w-full sm:w-auto px-6 py-2.5 rounded-full bg-luxury-ivory border border-border-subtle text-xs font-semibold text-luxury-ink hover:border-emerald transition-colors"
+            >
+              Về trang chủ
+            </Link>
+          </div>
+        </div>
+
+        {/* Related shows fallback */}
+        {relatedEvents.length > 0 && (
+          <div className="space-y-6 pt-6 border-t border-border-subtle">
+            <h3 className="font-serif text-2xl font-semibold text-luxury-ink text-center">
+              Các sự kiện đang mở bán vé hôm nay
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {relatedEvents.map((e) => (
+                <EventCard key={e.id} event={e} />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   // Schema.org Event Structured Data
   const eventJsonLd = {
     "@context": "https://schema.org",
     "@type": "Event",
     name: event.title,
-    description: event.description.join(" "),
-    image: [event.heroImage, event.bannerImage],
-    startDate: event.startDate,
-    endDate: event.startDate,
+    description: Array.isArray(event.description) ? event.description.join(" ") : event.description,
+    image: [event.heroImage || mockEvents[0].heroImage, event.bannerImage || mockEvents[0].bannerImage],
+    startDate: event.startDate || "2026-12-31T20:00:00",
+    endDate: event.startDate || "2026-12-31T20:00:00",
     eventStatus: "https://schema.org/EventScheduled",
     eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
     location: {
       "@type": "Place",
-      name: event.venue.name,
+      name: event.venue?.name || "Trung tâm Biểu diễn Nghệ thuật",
       address: {
         "@type": "PostalAddress",
-        streetAddress: event.venue.address,
-        addressLocality: event.venue.city,
+        streetAddress: event.venue?.address || "Việt Nam",
+        addressLocality: event.venue?.city || "TP. Hồ Chí Minh",
         addressCountry: "VN",
       },
     },
     performer: {
       "@type": "Person",
-      name: event.artist.name,
+      name: event.artist?.name || "Nghệ sĩ biểu diễn",
     },
-    offers: event.ticketTiers.map((tier) => ({
+    offers: (event.ticketTiers || []).map((tier) => ({
       "@type": "Offer",
       name: tier.name,
       price: tier.price,
@@ -128,7 +194,7 @@ export default function EventDetailPage({ params }: EventPageProps) {
           <div className="lg:col-span-7">
             <div className="relative aspect-[16/10] sm:aspect-[16/9] w-full rounded-3xl overflow-hidden shadow-xl border border-border-subtle bg-luxury-dark">
               <Image
-                src={event.heroImage}
+                src={event.heroImage || mockEvents[0].heroImage}
                 alt={event.title}
                 fill
                 priority
@@ -137,7 +203,7 @@ export default function EventDetailPage({ params }: EventPageProps) {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
               <div className="absolute top-6 left-6">
-                <Badge variant="dark">{event.category}</Badge>
+                <Badge variant="dark">{event.category || "Liveshow"}</Badge>
               </div>
             </div>
           </div>
@@ -146,11 +212,11 @@ export default function EventDetailPage({ params }: EventPageProps) {
           <div className="lg:col-span-5 space-y-6">
             <div className="space-y-3">
               <Link
-                href={`/artist/${event.artist.slug}`}
+                href={`/artist/${event.artist?.slug || "artist"}`}
                 className="inline-flex items-center gap-2 text-xs uppercase tracking-widest font-bold text-emerald hover:underline"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>{event.artist.name}</span>
+                <span>{event.artist?.name || "Nghệ sĩ biểu diễn"}</span>
               </Link>
 
               <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-luxury-ink leading-[1.1]">
@@ -175,10 +241,10 @@ export default function EventDetailPage({ params }: EventPageProps) {
                     Thời gian biểu diễn
                   </span>
                   <span className="font-semibold text-sm sm:text-base text-luxury-ink">
-                    {formatEventDate(event.dateDisplay)} ({event.timeDisplay})
+                    {formatEventDate(event.dateDisplay || "31.12.2026")} ({event.timeDisplay || "20:00"})
                   </span>
                   <span className="text-xs text-luxury-muted block">
-                    Mở cửa đón khách từ {event.doorTimeDisplay}
+                    Mở cửa đón khách từ {event.doorTimeDisplay || "18:30"}
                   </span>
                 </div>
               </div>
@@ -192,10 +258,10 @@ export default function EventDetailPage({ params }: EventPageProps) {
                     Địa điểm tổ chức
                   </span>
                   <span className="font-semibold text-sm sm:text-base text-luxury-ink">
-                    {event.venue.name}
+                    {event.venue?.name || "Trung tâm Biểu diễn Nghệ thuật"}
                   </span>
                   <span className="text-xs text-luxury-muted block">
-                    {event.venue.address}, {event.venue.city}
+                    {event.venue?.address || "Việt Nam"}, {event.venue?.city || "Toàn quốc"}
                   </span>
                 </div>
               </div>
@@ -208,7 +274,7 @@ export default function EventDetailPage({ params }: EventPageProps) {
                   Giá vé chính thức
                 </span>
                 <span className="font-bold text-xl text-emerald">
-                  Từ {formatVND(event.startingPrice)}
+                  Từ {formatVND(event.startingPrice || 650000)}
                 </span>
               </div>
               <div className="text-xs text-luxury-sage flex items-center gap-1.5">
@@ -229,41 +295,47 @@ export default function EventDetailPage({ params }: EventPageProps) {
                 Giới thiệu sự kiện
               </h2>
               <div className="space-y-4 text-luxury-sage text-[15px] sm:text-base leading-relaxed">
-                {event.description.map((paragraph, idx) => (
-                  <p key={idx}>{paragraph}</p>
-                ))}
+                {Array.isArray(event.description) ? (
+                  event.description.map((paragraph, idx) => (
+                    <p key={idx}>{paragraph}</p>
+                  ))
+                ) : (
+                  <p>{event.description || "Đêm nhạc nghệ thuật đặc sắc cùng nghệ sĩ hàng đầu."}</p>
+                )}
               </div>
             </div>
 
             {/* 2. Artist Highlight Box */}
-            <div className="p-6 sm:p-8 rounded-3xl bg-white border border-border-subtle shadow-sm flex flex-col sm:flex-row items-center gap-6">
-              <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden shrink-0 border border-border-subtle">
-                <Image
-                  src={event.artist.image}
-                  alt={event.artist.name}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <div className="space-y-2 text-center sm:text-left flex-grow">
-                <div className="text-xs uppercase font-bold text-emerald tracking-widest">
-                  Nghệ sĩ biểu diễn
+            {event.artist && (
+              <div className="p-6 sm:p-8 rounded-3xl bg-white border border-border-subtle shadow-sm flex flex-col sm:flex-row items-center gap-6">
+                <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden shrink-0 border border-border-subtle bg-luxury-dark/10">
+                  <Image
+                    src={event.artist.image || mockEvents[0].artist.image}
+                    alt={event.artist.name}
+                    fill
+                    className="object-cover"
+                  />
                 </div>
-                <h3 className="font-serif text-xl sm:text-2xl font-semibold text-luxury-ink">
-                  {event.artist.name}
-                </h3>
-                <p className="text-xs sm:text-sm text-luxury-sage">
-                  {event.artist.bio}
-                </p>
-                <Link
-                  href={`/artist/${event.artist.slug}`}
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-emerald hover:underline pt-1"
-                >
-                  <span>Xem các show khác của {event.artist.name}</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </Link>
+                <div className="space-y-2 text-center sm:text-left flex-grow">
+                  <div className="text-xs uppercase font-bold text-emerald tracking-widest">
+                    Nghệ sĩ biểu diễn
+                  </div>
+                  <h3 className="font-serif text-xl sm:text-2xl font-semibold text-luxury-ink">
+                    {event.artist.name}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-luxury-sage">
+                    {event.artist.bio || "Nghệ sĩ nổi bật với nhiều bản hit và phong cách âm nhạc độc đáo."}
+                  </p>
+                  <Link
+                    href={`/artist/${event.artist.slug || "artist"}`}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-emerald hover:underline pt-1"
+                  >
+                    <span>Xem các show khác của {event.artist.name}</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* 3. Seat Map & Zone Information */}
             <div className="space-y-4">
@@ -278,13 +350,13 @@ export default function EventDetailPage({ params }: EventPageProps) {
                   </div>
                   <div className="w-48 h-1 bg-champagne/60 rounded-full my-4" />
                   <div className="grid grid-cols-3 gap-3 w-full max-w-md text-xs">
-                    <div className="p-2.5 rounded-xl bg-emerald/40 border border-emerald/50">
+                    <div className="p-2.5 rounded-xl bg-emerald/40 border border-emerald/50 font-medium">
                       VIP LOUNGE
                     </div>
-                    <div className="p-2.5 rounded-xl bg-emerald/60 border border-emerald/70">
+                    <div className="p-2.5 rounded-xl bg-emerald/60 border border-emerald/70 font-semibold">
                       PLATINUM
                     </div>
-                    <div className="p-2.5 rounded-xl bg-emerald/40 border border-emerald/50">
+                    <div className="p-2.5 rounded-xl bg-emerald/40 border border-emerald/50 font-medium">
                       VIP LOUNGE
                     </div>
                   </div>
@@ -300,21 +372,25 @@ export default function EventDetailPage({ params }: EventPageProps) {
             </div>
 
             {/* 4. Important Notices */}
-            {event.importantNotices && event.importantNotices.length > 0 && (
-              <div className="space-y-4">
-                <h2 className="font-serif text-2xl font-semibold text-luxury-ink">
-                  Lưu ý quan trọng khi tham gia
-                </h2>
-                <div className="p-6 rounded-3xl bg-white border border-border-subtle space-y-3 text-xs sm:text-sm text-luxury-sage">
-                  {event.importantNotices.map((notice, idx) => (
-                    <div key={idx} className="flex items-start gap-2.5">
-                      <Info className="w-4 h-4 text-emerald shrink-0 mt-0.5" />
-                      <span>{notice}</span>
-                    </div>
-                  ))}
+            <div className="space-y-4">
+              <h2 className="font-serif text-2xl font-semibold text-luxury-ink">
+                Lưu ý quan trọng khi tham gia
+              </h2>
+              <div className="p-6 rounded-3xl bg-white border border-border-subtle space-y-3 text-xs sm:text-sm text-luxury-sage">
+                <div className="flex items-start gap-2.5">
+                  <Info className="w-4 h-4 text-emerald shrink-0 mt-0.5" />
+                  <span>Vui lòng mang theo vé điện tử QR và giấy tờ tùy thân để check-in tại cửa.</span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <Info className="w-4 h-4 text-emerald shrink-0 mt-0.5" />
+                  <span>Cửa khán phòng sẽ đóng 15 phút trước giờ diễn chính thức.</span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <Info className="w-4 h-4 text-emerald shrink-0 mt-0.5" />
+                  <span>Vé đã mua không hỗ trợ hoàn tiền, được hỗ trợ chuyển nhượng hợp lệ.</span>
                 </div>
               </div>
-            )}
+            </div>
           </div>
 
           {/* Right Column: Ticket Tier Selector & Booking Module */}

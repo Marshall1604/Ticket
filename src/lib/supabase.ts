@@ -467,6 +467,26 @@ export async function fetchEventsList(): Promise<EventItem[]> {
   return mockEvents;
 }
 
+// Helper: Get single event by Slug or ID
+export async function fetchEventBySlug(slug: string): Promise<EventItem | null> {
+  const cleanSlug = decodeURIComponent(slug).toLowerCase().trim();
+  const allEvents = await fetchEventsList();
+  
+  const found = allEvents.find((e) => {
+    const eSlug = (e.slug || "").toLowerCase().trim();
+    const eId = (e.id || "").toLowerCase().trim();
+    const eTitle = (e.title || "").toLowerCase().trim();
+    return (
+      eSlug === cleanSlug ||
+      eId === cleanSlug ||
+      eSlug.replace(/-/g, "") === cleanSlug.replace(/-/g, "") ||
+      eTitle.replace(/[^a-z0-9]/gi, "") === cleanSlug.replace(/[^a-z0-9]/gi, "")
+    );
+  });
+
+  return found || null;
+}
+
 // Helper: Save/Update Event & Ticket Tiers
 export async function saveEventItem(event: EventItem): Promise<boolean> {
   if (isSupabaseConfigured && supabase) {

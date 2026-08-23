@@ -14,17 +14,22 @@ interface EventCardProps {
 
 export function EventCard({ event, priority = false }: EventCardProps) {
   const isSoldOut = event.status === "sold_out";
+  const eventSlug = event.slug || event.id || "event";
+  const artistName = event.artist?.name || "Nghệ sĩ";
+  const venueName = event.venue?.name || "Địa điểm";
+  const venueCity = event.venue?.city || "Toàn quốc";
+  const heroImg = event.heroImage || "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=800&auto=format&fit=crop";
 
   return (
     <div className="group flex flex-col bg-white rounded-3xl border border-border-subtle hover:border-border-hover transition-all duration-300 shadow-[0_4px_20px_rgba(16,35,30,0.03)] hover:shadow-[0_12px_32px_rgba(16,35,30,0.08)] overflow-hidden h-full">
       {/* Card Image Container */}
       <Link
-        href={`/event/${event.slug}`}
+        href={`/event/${eventSlug}`}
         className="relative aspect-[16/10] w-full overflow-hidden bg-luxury-dark/5 block cursor-pointer"
         tabIndex={-1}
       >
         <Image
-          src={event.heroImage}
+          src={heroImg}
           alt={event.title}
           fill
           priority={priority}
@@ -37,7 +42,7 @@ export function EventCard({ event, priority = false }: EventCardProps) {
 
         {/* Top Badges */}
         <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none">
-          <Badge variant="dark">{event.category}</Badge>
+          <Badge variant="dark">{event.category || "Liveshow"}</Badge>
           {isSoldOut ? (
             <span className="px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-rose-900/90 text-rose-100 border border-rose-500/30 backdrop-blur-md">
               Hết vé
@@ -52,7 +57,7 @@ export function EventCard({ event, priority = false }: EventCardProps) {
         {/* Bottom Date Badge in Image */}
         <div className="absolute bottom-4 left-4 flex items-center gap-1.5 text-white/95 text-xs font-semibold tracking-wide backdrop-blur-md bg-black/40 px-3 py-1.5 rounded-full border border-white/15">
           <Calendar className="w-3.5 h-3.5 text-champagne" />
-          <span>{formatEventDate(event.dateDisplay)}</span>
+          <span>{formatEventDate(event.dateDisplay || "31.12.2026")}</span>
         </div>
       </Link>
 
@@ -61,10 +66,10 @@ export function EventCard({ event, priority = false }: EventCardProps) {
         <div className="space-y-2">
           {/* Artist & Show Name */}
           <div className="text-xs uppercase font-bold tracking-widest text-emerald">
-            {event.artist.name}
+            {artistName}
           </div>
           <Link
-            href={`/event/${event.slug}`}
+            href={`/event/${eventSlug}`}
             className="block group-hover:text-emerald transition-colors"
           >
             <h3 className="font-serif text-xl sm:text-[22px] font-semibold text-luxury-ink leading-snug line-clamp-2">
@@ -73,7 +78,7 @@ export function EventCard({ event, priority = false }: EventCardProps) {
           </Link>
           <div className="flex items-start gap-1.5 text-xs text-luxury-sage pt-1">
             <MapPin className="w-3.5 h-3.5 text-luxury-muted shrink-0 mt-0.5" />
-            <span className="line-clamp-1">{event.venue.name} • {event.venue.city}</span>
+            <span className="line-clamp-1">{venueName} • {venueCity}</span>
           </div>
         </div>
 
@@ -84,12 +89,12 @@ export function EventCard({ event, priority = false }: EventCardProps) {
               Giá vé từ
             </span>
             <span className="font-semibold text-[17px] text-luxury-ink">
-              {formatVND(event.startingPrice)}
+              {formatVND(event.startingPrice || 650000)}
             </span>
           </div>
 
           <Link
-            href={`/event/${event.slug}`}
+            href={`/event/${eventSlug}`}
             className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-semibold tracking-wide transition-all duration-200 ${
               isSoldOut
                 ? "bg-gray-100 text-luxury-muted cursor-not-allowed pointer-events-none"
