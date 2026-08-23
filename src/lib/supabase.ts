@@ -220,6 +220,37 @@ export async function fetchOrdersByUser(email: string): Promise<OrderItem[]> {
   );
 }
 
+// Helper: Get single order by orderNumber
+export async function fetchOrderByNumber(orderNumber: string): Promise<OrderItem | null> {
+  const cleanNumber = orderNumber.trim().toUpperCase();
+  
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from("orders")
+        .select("*, event:events(*)")
+        .eq("order_number", cleanNumber)
+        .maybeSingle();
+
+      if (!error && data) {
+        return mapOrderFromDb(data);
+      }
+    } catch (err) {
+      console.warn("Supabase fetch order by number error:", err);
+    }
+  }
+
+  const allOrders = await fetchOrdersList();
+  const matched = allOrders.find(
+    (o) =>
+      o.orderNumber.toUpperCase() === cleanNumber ||
+      o.orderNumber.replace(/[^A-Z0-9]/gi, "").toUpperCase() ===
+        cleanNumber.replace(/[^A-Z0-9]/gi, "")
+  );
+
+  return matched || null;
+}
+
 // -------------------------------------------------------------------
 // Helper: Get users from Supabase or Local Fallback
 // -------------------------------------------------------------------

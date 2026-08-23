@@ -1,10 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import { Check, ShieldCheck, CreditCard, Building2, Smartphone, ArrowRight, X, AlertCircle } from "lucide-react";
+import Link from "next/link";
+import { Check, ShieldCheck, CreditCard, Building2, Smartphone, ArrowRight, X, AlertCircle, Sparkles, ExternalLink, QrCode } from "lucide-react";
 import { EventItem, TicketTier, OrderItem } from "@/types";
 import { formatVND, formatEventDate } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
+import { QRCodeSVG } from "qrcode.react";
 
 interface CheckoutModalProps {
   event: EventItem;
@@ -23,12 +25,13 @@ export function CheckoutModal({
   onClose,
   onSuccess,
 }: CheckoutModalProps) {
-  const [step, setStep] = useState<"info" | "payment" | "processing">("info");
+  const [step, setStep] = useState<"info" | "payment" | "processing" | "success">("info");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"bank_transfer" | "credit_card" | "momo">("bank_transfer");
   const [errorMsg, setErrorMsg] = useState("");
+  const [completedOrder, setCompletedOrder] = useState<OrderItem | null>(null);
 
   if (!isOpen) return null;
 
@@ -78,7 +81,7 @@ export function CheckoutModal({
         customerPhone: phone,
         paymentMethod,
         paymentStatus: "paid",
-        qrCodeData: `https://ticketshow.vn/verify/${orderNumber}-${event.slug}`,
+        qrCodeData: `https://ticketshow.vn/verify/${orderNumber}`,
         createdAt: new Date().toISOString(),
         seatNumbers: Array.from({ length: quantity }, (_, i) => `Zone ${selectedTier.name.slice(0, 3).toUpperCase()}-${10 + i}`),
       };
@@ -101,8 +104,9 @@ export function CheckoutModal({
         },
       });
 
-      onSuccess(newOrder);
-    }, 1200);
+      setCompletedOrder(newOrder);
+      setStep("success");
+    }, 1000);
   };
 
   return (
@@ -349,6 +353,112 @@ export function CheckoutModal({
                 <p className="text-xs sm:text-sm text-luxury-sage">
                   Vui lòng không đóng trình duyệt. Chúng tôi đang lưu mã QR vào tài khoản của bạn.
                 </p>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 4: Success with Instant Scannable QR Code */}
+          {step === "success" && completedOrder && (
+            <div className="space-y-6 animate-fade-in text-center">
+              <div className="p-4 rounded-2xl bg-emerald/10 border border-emerald/20 text-emerald flex items-center justify-center gap-2">
+                <ShieldCheck className="w-5 h-5" />
+                <span className="font-serif text-base sm:text-lg font-bold">
+                  ĐẶT VÉ THÀNH CÔNG • VÉ ĐÃ SẴN SÀNG!
+                </span>
+              </div>
+
+              {/* Real Scannable QR Box */}
+              <div className="p-4 rounded-3xl bg-luxury-ivory border border-border-subtle inline-block mx-auto shadow-sm">
+                <div className="bg-white border border-border-subtle rounded-2xl p-4 flex flex-col items-center justify-center space-y-2 shadow-inner">
+                  <QRCodeSVG
+                    value={
+                      typeof window !== "undefined"
+                        ? `${window.location.origin}/verify/${completedOrder.orderNumber}`
+                        : `https://ticketshow.vn/verify/${completedOrder.orderNumber}`
+                    }
+                    size={170}
+                    level="H"
+                    bgColor="#ffffff"
+                    fgColor="#062319"
+                    includeMargin={false}
+                  />
+                  <span className="font-mono text-xs font-bold text-emerald tracking-wider pt-1">
+                    #{completedOrder.orderNumber}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-emerald flex items-center justify-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Dùng Camera điện thoại quét mã QR ngay trên màn hình</span>
+                </p>
+                <p className="text-[11px] text-luxury-sage max-w-sm mx-auto">
+                  Điện thoại sẽ tự động mở trang xác thực đầy đủ Giá tiền, Tên show, Thời gian và Địa điểm!
+                </p>
+              </div>
+
+              {/* Order Info Breakdown */}
+              <div className="space-y-2.5 text-left bg-luxury-ivory/60 p-4 rounded-2xl border border-border-subtle text-xs">
+                <div className="flex justify-between items-start pb-2 border-b border-border-subtle">
+                  <span className="text-luxury-sage">Tên show diễn:</span>
+                  <span className="font-bold text-luxury-ink text-right max-w-[220px]">
+                    {completedOrder.eventTitle}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center pb-2 border-b border-border-subtle">
+                  <span className="text-luxury-sage">Tổng tiền đã mua:</span>
+                  <span className="font-serif text-sm font-bold text-emerald">
+                    {formatVND(completedOrder.totalPrice)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-start pb-2 border-b border-border-subtle">
+                  <span className="text-luxury-sage">Thời gian biểu diễn:</span>
+                  <span className="font-semibold text-luxury-ink text-right">
+                    {formatEventDate(completedOrder.eventDate)} ({completedOrder.eventTime})
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-start pb-2 border-b border-border-subtle">
+                  <span className="text-luxury-sage">Địa điểm:</span>
+                  <span className="font-semibold text-luxury-ink text-right max-w-[220px]">
+                    {completedOrder.venueName} ({completedOrder.venueCity})
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center pb-2 border-b border-border-subtle">
+                  <span className="text-luxury-sage">Hạng vé & Vị trí ghế:</span>
+                  <span className="font-semibold text-emerald">
+                    {completedOrder.ticketTierName} • {completedOrder.seatNumbers?.join(", ")}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <span className="text-luxury-sage">Chủ sở hữu vé:</span>
+                  <span className="font-semibold text-luxury-ink">{completedOrder.customerName}</span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-2 pt-2">
+                <Link
+                  href={`/verify/${completedOrder.orderNumber}`}
+                  target="_blank"
+                  className="w-full py-3.5 rounded-full bg-emerald text-white text-xs font-semibold hover:bg-emerald-hover transition-colors shadow-md inline-flex items-center justify-center gap-1.5 active:scale-95"
+                >
+                  <span>Mở trang xác thực vé trên trình duyệt</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => onSuccess(completedOrder)}
+                  className="w-full py-2.5 rounded-full bg-luxury-ivory border border-border-subtle text-xs font-semibold text-luxury-ink hover:border-emerald hover:text-emerald transition-colors"
+                >
+                  Đến trang Quản lý Vé của tôi →
+                </button>
               </div>
             </div>
           )}

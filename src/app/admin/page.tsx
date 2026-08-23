@@ -44,6 +44,7 @@ import { mockEvents } from "@/data/mockEvents";
 import { mockUsers } from "@/data/mockUsers";
 import { mockArtists } from "@/data/mockArtists";
 import { mockArticles } from "@/data/mockArticles";
+import { QRCodeSVG } from "qrcode.react";
 import {
   UserProfile,
   Article,
@@ -2748,51 +2749,107 @@ SUPABASE_SERVICE_ROLE_KEY=your_secret_service_role_key`}
               </button>
             </div>
 
-            <div className="p-6 space-y-6 text-center">
-              {/* QR Box */}
-              <div className="p-6 rounded-2xl bg-luxury-ivory border border-border-subtle inline-block mx-auto">
-                <div className="w-44 h-44 bg-white border border-border-subtle rounded-xl p-3 flex flex-col items-center justify-center space-y-2 shadow-inner">
-                  <QrCode className="w-32 h-32 text-luxury-ink" />
-                  <span className="font-mono text-[10px] font-bold text-luxury-sage tracking-wider">
-                    {selectedOrderForQr.orderNumber}
+            <div className="p-6 space-y-5 text-center">
+              {/* Real Scannable QR Box */}
+              <div className="p-4 rounded-3xl bg-luxury-ivory border border-border-subtle inline-block mx-auto shadow-sm">
+                <div className="bg-white border border-border-subtle rounded-2xl p-4 flex flex-col items-center justify-center space-y-2 shadow-inner">
+                  <QRCodeSVG
+                    value={
+                      typeof window !== "undefined"
+                        ? `${window.location.origin}/verify/${selectedOrderForQr.orderNumber}`
+                        : `https://ticketshow.vn/verify/${selectedOrderForQr.orderNumber}`
+                    }
+                    size={170}
+                    level="H"
+                    bgColor="#ffffff"
+                    fgColor="#062319"
+                    includeMargin={false}
+                  />
+                  <span className="font-mono text-xs font-bold text-emerald tracking-wider pt-1">
+                    #{selectedOrderForQr.orderNumber}
                   </span>
                 </div>
               </div>
 
-              <div className="space-y-2 text-left bg-luxury-ivory/50 p-4 rounded-2xl border border-border-subtle text-xs">
-                <div className="flex justify-between">
-                  <span className="text-luxury-sage">Người sở hữu:</span>
-                  <span className="font-bold text-luxury-ink">{selectedOrderForQr.customerName}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-luxury-sage">Hạng vé:</span>
-                  <span className="font-bold text-emerald">{selectedOrderForQr.ticketTierName}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-luxury-sage">Số lượng:</span>
-                  <span className="font-bold text-luxury-ink">{selectedOrderForQr.quantity} vé</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-luxury-sage">Thời gian đặt vé:</span>
-                  <span className="font-semibold text-luxury-ink">
-                    {new Date(selectedOrderForQr.createdAt).toLocaleString("vi-VN")}
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-emerald flex items-center justify-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Quét bằng Camera điện thoại hoặc Zalo</span>
+                </p>
+                <p className="text-[11px] text-luxury-sage">
+                  Điện thoại sẽ tự động mở trang xác thực thông tin show, giá tiền, thời gian và địa điểm.
+                </p>
+              </div>
+
+              {/* Complete Event & Price Details Box */}
+              <div className="space-y-2.5 text-left bg-luxury-ivory/60 p-4 rounded-2xl border border-border-subtle text-xs">
+                <div className="flex justify-between items-start pb-2 border-b border-border-subtle">
+                  <span className="text-luxury-sage">Show diễn:</span>
+                  <span className="font-bold text-luxury-ink text-right max-w-[200px]">
+                    {selectedOrderForQr.eventTitle}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-luxury-sage">Ghế ngồi:</span>
-                  <span className="font-bold text-emerald">
+
+                <div className="flex justify-between items-center pb-2 border-b border-border-subtle">
+                  <span className="text-luxury-sage">Giá tiền đã mua:</span>
+                  <span className="font-serif text-sm font-bold text-emerald">
+                    {formatVND(selectedOrderForQr.totalPrice)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-start pb-2 border-b border-border-subtle">
+                  <span className="text-luxury-sage">Thời gian diễn:</span>
+                  <span className="font-semibold text-luxury-ink text-right">
+                    {formatEventDate(selectedOrderForQr.eventDate)} ({selectedOrderForQr.eventTime})
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-start pb-2 border-b border-border-subtle">
+                  <span className="text-luxury-sage">Địa điểm:</span>
+                  <span className="font-semibold text-luxury-ink text-right max-w-[200px]">
+                    {selectedOrderForQr.venueName} ({selectedOrderForQr.venueCity})
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center pb-2 border-b border-border-subtle">
+                  <span className="text-luxury-sage">Hạng vé & Số lượng:</span>
+                  <span className="font-semibold text-emerald">
+                    {selectedOrderForQr.ticketTierName} ({selectedOrderForQr.quantity} vé)
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center pb-2 border-b border-border-subtle">
+                  <span className="text-luxury-sage">Vị trí ghế ngồi:</span>
+                  <span className="font-bold text-luxury-ink">
                     {selectedOrderForQr.seatNumbers?.join(", ") || "Tự do"}
                   </span>
                 </div>
+
+                <div className="flex justify-between items-center">
+                  <span className="text-luxury-sage">Người sở hữu:</span>
+                  <span className="font-semibold text-luxury-ink">{selectedOrderForQr.customerName}</span>
+                </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setSelectedOrderForQr(null)}
-                className="w-full py-3 rounded-full bg-emerald text-white text-xs font-semibold hover:bg-emerald-hover"
-              >
-                Đóng vé
-              </button>
+              {/* Action Buttons */}
+              <div className="space-y-2 pt-1">
+                <Link
+                  href={`/verify/${selectedOrderForQr.orderNumber}`}
+                  target="_blank"
+                  className="w-full py-3 rounded-full bg-emerald text-white text-xs font-semibold hover:bg-emerald-hover transition-colors shadow-sm inline-flex items-center justify-center gap-1.5"
+                >
+                  <span>Mở trang xác thực vé trên trình duyệt</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedOrderForQr(null)}
+                  className="w-full py-2.5 rounded-full text-xs font-semibold text-luxury-sage hover:text-luxury-ink transition-colors"
+                >
+                  Đóng
+                </button>
+              </div>
             </div>
           </div>
         </div>

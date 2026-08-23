@@ -3,9 +3,10 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Calendar, Clock, MapPin, QrCode, Download, Share2, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { Calendar, Clock, MapPin, QrCode, Download, Share2, ShieldCheck, CheckCircle2, ExternalLink } from "lucide-react";
 import { OrderItem } from "@/types";
 import { formatVND, formatEventDate } from "@/lib/utils";
+import { QRCodeSVG } from "qrcode.react";
 
 interface TicketPassCardProps {
   order: OrderItem;
@@ -14,11 +15,13 @@ interface TicketPassCardProps {
 export function TicketPassCard({ order }: TicketPassCardProps) {
   const [copied, setCopied] = useState(false);
 
+  const verifyUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/verify/${order.orderNumber}`
+    : `https://ticketshow.vn/verify/${order.orderNumber}`;
+
   const handleShare = () => {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(
-        `Vé TICKETSHOW: ${order.eventTitle} (${order.ticketTierName}) - Mã đơn: ${order.orderNumber}`
-      );
+    if (typeof window !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(verifyUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -47,7 +50,7 @@ export function TicketPassCard({ order }: TicketPassCardProps) {
             {order.paymentStatus === "paid" ? "Vé chính thức • Đã kích hoạt" : "Chờ xác nhận"}
           </span>
           <span className="px-3 py-1 rounded-full text-[11px] font-mono font-semibold bg-black/50 text-white/90 backdrop-blur-md border border-white/20">
-            {order.orderNumber}
+            #{order.orderNumber}
           </span>
         </div>
 
@@ -87,12 +90,12 @@ export function TicketPassCard({ order }: TicketPassCardProps) {
 
           <div className="space-y-1">
             <span className="text-[11px] uppercase tracking-wider text-luxury-sage font-medium block">
-              Hạng vé
+              Hạng vé & Giá
             </span>
             <span className="font-semibold text-sm sm:text-[15px] text-emerald block">
               {order.ticketTierName}
             </span>
-            <span className="text-xs text-luxury-sage block">Số lượng: {order.quantity} vé</span>
+            <span className="text-xs text-luxury-sage block">{order.quantity} vé ({formatVND(order.totalPrice)})</span>
           </div>
 
           <div className="space-y-1">
@@ -110,26 +113,40 @@ export function TicketPassCard({ order }: TicketPassCardProps) {
         <div className="p-6 rounded-2xl bg-luxury-ivory border border-border-subtle flex flex-col sm:flex-row items-center justify-between gap-6">
           {/* QR Visual */}
           <div className="flex items-center gap-5">
-            <div className="p-3 bg-white rounded-2xl border border-border-subtle shadow-sm shrink-0">
-              {/* Dynamic Clean QR Code Representation */}
-              <div className="w-24 h-24 sm:w-28 sm:h-28 bg-luxury-dark p-2 rounded-lg flex items-center justify-center relative">
-                <div className="w-full h-full border-4 border-dashed border-white/80 rounded flex items-center justify-center">
-                  <QrCode className="w-12 h-12 text-white" />
-                </div>
-              </div>
-            </div>
+            <Link
+              href={`/verify/${order.orderNumber}`}
+              target="_blank"
+              className="p-3 bg-white rounded-2xl border border-border-subtle shadow-sm shrink-0 group hover:border-emerald transition-all hover:scale-105"
+              title="Nhấn để mở trang xác thực thông tin vé"
+            >
+              <QRCodeSVG
+                value={verifyUrl}
+                size={100}
+                level="H"
+                bgColor="#ffffff"
+                fgColor="#062319"
+                includeMargin={false}
+              />
+            </Link>
 
             <div className="space-y-1.5 text-left">
               <div className="text-xs font-bold uppercase tracking-wider text-emerald flex items-center gap-1.5">
                 <ShieldCheck className="w-4 h-4" />
-                <span>MÃ CHECK-IN TẠI CỔNG</span>
+                <span>MÃ QUÉT QR CHECK-IN TẠI CỔNG</span>
               </div>
               <div className="font-mono text-sm font-bold text-luxury-ink">
-                {order.orderNumber}
+                #{order.orderNumber}
               </div>
               <p className="text-xs text-luxury-sage max-w-xs">
-                Xuất trình mã QR này trên điện thoại hoặc bản in khi tới cổng check-in của sự kiện.
+                Dùng camera điện thoại quét mã QR để kiểm tra giá tiền, thời gian và địa điểm show diễn.
               </p>
+              <Link
+                href={`/verify/${order.orderNumber}`}
+                target="_blank"
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald hover:underline pt-0.5"
+              >
+                <span>Xem trang xác thực vé ↗</span>
+              </Link>
             </div>
           </div>
 
