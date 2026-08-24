@@ -36,8 +36,8 @@ const config: Config = {
         },
       },
       fontFamily: {
-        serif: ["'Playfair Display'", "'Plus Jakarta Sans'", "Georgia", "serif"],
-        sans: ["'Plus Jakarta Sans'", "'Be Vietnam Pro'", "system-ui", "-apple-system", "sans-serif"],
+        serif: ["'Playfair Display'", "'Noto Sans'", "Georgia", "serif"],
+        sans: ["'Noto Sans'", "system-ui", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
       },
       maxWidth: {
         site: "1280px",
