@@ -36,8 +36,8 @@ const config: Config = {
         },
       },
       fontFamily: {
-        serif: ["var(--font-bodoni)", "Bodoni Moda", "Didot", "Cormorant Garamond", "serif"],
-        sans: ["var(--font-manrope)", "Manrope", "Inter", "sans-serif"],
+        serif: ["'Playfair Display'", "'Plus Jakarta Sans'", "Georgia", "serif"],
+        sans: ["'Plus Jakarta Sans'", "'Be Vietnam Pro'", "system-ui", "-apple-system", "sans-serif"],
       },
       maxWidth: {
         site: "1280px",

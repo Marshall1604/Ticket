@@ -21,11 +21,11 @@ export function EventCard({ event, priority = false }: EventCardProps) {
   const heroImg = event.heroImage || "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=800&auto=format&fit=crop";
 
   return (
-    <div className="group flex flex-col bg-white rounded-3xl border border-border-subtle hover:border-border-hover transition-all duration-300 shadow-[0_4px_20px_rgba(16,35,30,0.03)] hover:shadow-[0_12px_32px_rgba(16,35,30,0.08)] overflow-hidden h-full">
+    <div className="group flex flex-col bg-white rounded-3xl sm:rounded-[32px] border border-border-subtle hover:border-emerald/40 transition-all duration-300 shadow-[0_4px_20px_rgba(16,35,30,0.03)] hover:shadow-[0_20px_48px_rgba(14,68,55,0.12)] hover:-translate-y-2 overflow-hidden h-full">
       {/* Card Image Container */}
       <Link
         href={`/event/${eventSlug}`}
-        className="relative aspect-[16/10] w-full overflow-hidden bg-luxury-dark/5 block cursor-pointer"
+        className="relative aspect-[16/10] w-full overflow-hidden bg-luxury-dark/5 block cursor-pointer hover-shimmer"
         tabIndex={-1}
       >
         <Image
@@ -34,11 +34,11 @@ export function EventCard({ event, priority = false }: EventCardProps) {
           fill
           priority={priority}
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+          className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
         />
 
         {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-black/20" />
 
         {/* Top Badges */}
         <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none">
@@ -62,7 +62,7 @@ export function EventCard({ event, priority = false }: EventCardProps) {
       </Link>
 
       {/* Card Body */}
-      <div className="p-6 flex flex-col flex-grow justify-between gap-4">
+      <div className="p-6 sm:p-7 flex flex-col flex-grow justify-between gap-4">
         <div className="space-y-2">
           {/* Artist & Show Name */}
           <div className="text-xs uppercase font-bold tracking-widest text-emerald">
@@ -95,14 +95,14 @@ export function EventCard({ event, priority = false }: EventCardProps) {
 
           <Link
             href={`/event/${eventSlug}`}
-            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-semibold tracking-wide transition-all duration-200 ${
+            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-semibold tracking-wide transition-all duration-300 ${
               isSoldOut
                 ? "bg-gray-100 text-luxury-muted cursor-not-allowed pointer-events-none"
-                : "bg-emerald/10 text-emerald hover:bg-emerald hover:text-white"
+                : "bg-emerald/10 text-emerald hover:bg-emerald hover:text-white shadow-sm hover:shadow-md hover:scale-105 active:scale-95"
             }`}
           >
             <span>{isSoldOut ? "Hết vé" : "Xem vé"}</span>
-            {!isSoldOut && <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />}
+            {!isSoldOut && <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />}
           </Link>
         </div>
       </div>

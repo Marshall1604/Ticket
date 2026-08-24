@@ -52,27 +52,27 @@ export function ArtistCarousel({ artists }: ArtistCarouselProps) {
         </div>
       </div>
 
-      {/* Horizontal Carousel Track */}
+      {/* Horizontal Carousel Track with Touch Pan */}
       <div
         ref={scrollRef}
-        className="flex gap-4 sm:gap-6 overflow-x-auto no-scrollbar pb-4 pt-1 snap-x snap-mandatory scroll-smooth -mx-5 px-5 sm:mx-0 sm:px-0"
+        className="flex gap-4 sm:gap-6 overflow-x-auto no-scrollbar pb-4 pt-1 snap-x snap-mandatory scroll-smooth -mx-5 px-5 sm:mx-0 sm:px-0 touch-pan-slider"
       >
         {artists.map((artist) => (
           <Link
             key={artist.id}
             href={`/artist/${artist.slug}`}
-            className="group flex-shrink-0 w-[145px] sm:w-[185px] lg:w-[200px] snap-start flex flex-col cursor-pointer focus:outline-none"
+            className="group flex-shrink-0 w-[150px] sm:w-[190px] lg:w-[210px] snap-start flex flex-col cursor-pointer focus:outline-none transition-transform duration-300 hover:-translate-y-1.5"
           >
-            {/* 4:5 Portrait Rounded Card (Strictly Not Circular) */}
-            <div className="relative aspect-[4/5] w-full rounded-[24px] overflow-hidden bg-luxury-dark/5 border border-border-subtle transition-all duration-300 group-hover:border-emerald/40 group-hover:shadow-[0_12px_24px_rgba(14,68,55,0.12)] mb-3">
+            {/* 4:5 Portrait Rounded Card */}
+            <div className="relative aspect-[4/5] w-full rounded-[26px] overflow-hidden bg-luxury-dark/5 border border-border-subtle transition-all duration-300 group-hover:border-emerald/40 group-hover:shadow-[0_16px_32px_rgba(14,68,55,0.14)] mb-3 hover-shimmer">
               <Image
                 src={artist.image}
                 alt={artist.name}
                 fill
                 sizes="(max-width: 640px) 45vw, (max-width: 1024px) 25vw, 15vw"
-                className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                className="object-cover transition-transform duration-700 ease-out group-hover:scale-108"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </div>
 
             {/* Typography */}

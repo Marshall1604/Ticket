@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Manrope:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -26,18 +26,18 @@ html {
   scroll-behavior: smooth;
   background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
-  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Plus Jakarta Sans', 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 /* Typography Utility Classes */
 .font-display {
-  font-family: 'Bodoni Moda', Didot, 'Cormorant Garamond', Georgia, serif;
+  font-family: 'Playfair Display', 'Plus Jakarta Sans', Georgia, serif;
 }
 
 .font-body {
-  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Plus Jakarta Sans', 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 /* Custom Editorial Scrollbar */
@@ -101,6 +101,50 @@ html {
   height: 24px;
   border-radius: 50%;
   background-color: var(--color-bg-primary);
+}
+
+/* Desktop Hover & Micro-interaction Utilities */
+.hover-card-luxury {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hover-card-luxury:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 48px -12px rgba(14, 68, 55, 0.14), 0 8px 24px -6px rgba(16, 35, 30, 0.06);
+    border-color: rgba(14, 68, 55, 0.28);
+  }
+}
+
+/* Light reflection shimmer effect on hover */
+.hover-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.hover-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.75s ease-in-out;
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hover-shimmer:hover::after {
+    left: 150%;
+  }
+}
+
+/* Smooth Touch Carousel Pan */
+.touch-pan-slider {
+  touch-action: pan-y pinch-zoom;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Reduced Motion Compliance */
